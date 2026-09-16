@@ -90,13 +90,17 @@ pub fn classify(archs: &[Arch]) -> Status {
 }
 
 /// Lit les architectures présentes dans un binaire Mach-O (thin ou universel).
-/// Retourne `None` si le fichier n'est pas un Mach-O reconnu (script, trop court,
-/// `.class` Java qui partage le magic fat, etc.) plutôt que de deviner.
-pub fn read_archs(path: &std::path::Path) -> Option<Vec<Arch>> {
-    let mut f = std::fs::File::open(path).ok()?;
+///
+/// - `Err` : le fichier n'a pas pu être ouvert/lu (permissions, etc.) — appelant
+///   doit le compter comme illisible, pas comme un script.
+/// - `Ok(None)` : lu avec succès mais ce n'est pas un Mach-O reconnu (script,
+///   fichier trop court, `.class` Java qui partage le magic fat...).
+/// - `Ok(Some(archs))` : architectures trouvées.
+pub fn read_archs(path: &std::path::Path) -> std::io::Result<Option<Vec<Arch>>> {
+    let mut f = std::fs::File::open(path)?;
     let mut buf = [0u8; READ_LEN];
-    let n = f.read(&mut buf).ok()?;
-    archs_from_header(&buf[..n])
+    let n = f.read(&mut buf)?;
+    Ok(archs_from_header(&buf[..n]))
 }
 
 fn u32_at(buf: &[u8], off: usize, big_endian: bool) -> Option<u32> {
@@ -255,6 +259,7 @@ mod tests {
     #[test]
     fn real_binary_on_disk() {
         let archs = read_archs(std::path::Path::new("/usr/bin/file"))
+            .expect("lecture de /usr/bin/file")
             .expect("/usr/bin/file devrait être un Mach-O universel");
         assert!(archs.contains(&Arch::Arm64), "attendu arm64 dans {archs:?}");
     }
