@@ -21,7 +21,11 @@ async fn scan(opts: scan::ScanOptions) -> Report {
 }
 
 #[tauri::command]
-async fn export_report(app: tauri::AppHandle, format: String, report: Report) -> Result<Option<String>, String> {
+async fn export_report(
+    app: tauri::AppHandle,
+    format: String,
+    report: Report,
+) -> Result<Option<String>, String> {
     let (ext, content) = match format.as_str() {
         "csv" => ("csv", to_csv(&report)),
         "txt" => ("txt", to_txt(&report)),
@@ -29,7 +33,11 @@ async fn export_report(app: tauri::AppHandle, format: String, report: Report) ->
     };
     let file_name = format!("audit-rosetta-{}.{}", report.host.hostname, ext);
 
-    let picked = app.dialog().file().set_file_name(&file_name).blocking_save_file();
+    let picked = app
+        .dialog()
+        .file()
+        .set_file_name(&file_name)
+        .blocking_save_file();
     let Some(file_path) = picked else {
         return Ok(None); // annulé par l'utilisateur
     };
@@ -51,25 +59,70 @@ fn to_txt(report: &Report) -> String {
     }
     s.push('\n');
 
-    let apps_intel: Vec<&Item> = report.items.iter().filter(|i| i.kind == "app" && i.status == "intel_only").collect();
-    let execs_intel: Vec<&Item> = report.items.iter().filter(|i| i.kind == "exec" && i.status == "intel_only").collect();
-    let obsolete: Vec<&Item> = report.items.iter().filter(|i| i.status == "obsolete").collect();
-    let unknown: Vec<&Item> = report.items.iter().filter(|i| i.status == "unknown").collect();
+    let apps_intel: Vec<&Item> = report
+        .items
+        .iter()
+        .filter(|i| i.kind == "app" && i.status == "intel_only")
+        .collect();
+    let execs_intel: Vec<&Item> = report
+        .items
+        .iter()
+        .filter(|i| i.kind == "exec" && i.status == "intel_only")
+        .collect();
+    let obsolete: Vec<&Item> = report
+        .items
+        .iter()
+        .filter(|i| i.status == "obsolete")
+        .collect();
+    let unknown: Vec<&Item> = report
+        .items
+        .iter()
+        .filter(|i| i.status == "unknown")
+        .collect();
     let native_count = report.items.iter().filter(|i| i.status == "native").count();
 
     write_txt_section(&mut s, "Apps nécessitant Rosetta 2", &apps_intel);
     write_txt_section(&mut s, "Exécutables nécessitant Rosetta 2", &execs_intel);
-    write_txt_section(&mut s, "Obsolètes (architecture trop ancienne, déjà inexécutable)", &obsolete);
-    write_txt_section(&mut s, "Indéterminés (lecture de l'exécutable impossible)", &unknown);
+    write_txt_section(
+        &mut s,
+        "Obsolètes (architecture trop ancienne, déjà inexécutable)",
+        &obsolete,
+    );
+    write_txt_section(
+        &mut s,
+        "Indéterminés (lecture de l'exécutable impossible)",
+        &unknown,
+    );
 
     s.push_str("--- Résumé ---\n");
-    s.push_str(&format!("Apps nécessitant Rosetta 2      : {}\n", apps_intel.len()));
-    s.push_str(&format!("Exécutables nécessitant Rosetta 2 : {}\n", execs_intel.len()));
-    s.push_str(&format!("Obsolètes                       : {}\n", obsolete.len()));
-    s.push_str(&format!("Indéterminés                    : {}\n", unknown.len()));
-    s.push_str(&format!("Natifs (arm64)                   : {}\n", native_count));
-    s.push_str(&format!("Scripts ignorés                  : {}\n", report.scripts_skipped));
-    s.push_str(&format!("Illisibles                       : {}\n", report.unreadable));
+    s.push_str(&format!(
+        "Apps nécessitant Rosetta 2      : {}\n",
+        apps_intel.len()
+    ));
+    s.push_str(&format!(
+        "Exécutables nécessitant Rosetta 2 : {}\n",
+        execs_intel.len()
+    ));
+    s.push_str(&format!(
+        "Obsolètes                       : {}\n",
+        obsolete.len()
+    ));
+    s.push_str(&format!(
+        "Indéterminés                    : {}\n",
+        unknown.len()
+    ));
+    s.push_str(&format!(
+        "Natifs (arm64)                   : {}\n",
+        native_count
+    ));
+    s.push_str(&format!(
+        "Scripts ignorés                  : {}\n",
+        report.scripts_skipped
+    ));
+    s.push_str(&format!(
+        "Illisibles                       : {}\n",
+        report.unreadable
+    ));
     s
 }
 
@@ -85,7 +138,11 @@ fn write_txt_section(s: &mut String, title: &str, items: &[&Item]) {
             format!("{} → {}", item.path, item.real_path)
         };
         let version = item.version.as_deref().unwrap_or("—");
-        let archs = if item.archs.is_empty() { "—".to_string() } else { item.archs.join(", ") };
+        let archs = if item.archs.is_empty() {
+            "—".to_string()
+        } else {
+            item.archs.join(", ")
+        };
         s.push_str(&format!(
             "  [{}] {} ({version}) — {where_} — source: {} — archs: {archs}\n",
             item.kind, item.name, item.source
@@ -172,7 +229,12 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::
         ],
     )?;
 
-    let view_menu = Submenu::with_items(app, "View", true, &[&PredefinedMenuItem::fullscreen(app, None)?])?;
+    let view_menu = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[&PredefinedMenuItem::fullscreen(app, None)?],
+    )?;
 
     let window_menu = Submenu::with_items(
         app,

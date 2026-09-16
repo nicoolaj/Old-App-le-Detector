@@ -81,10 +81,21 @@ pub fn scan(opts: &ScanOptions) -> Report {
     let home = std::env::var("HOME").unwrap_or_default();
 
     if opts.apps {
-        for dir in [PathBuf::from("/Applications"), PathBuf::from(format!("{home}/Applications"))] {
+        for dir in [
+            PathBuf::from("/Applications"),
+            PathBuf::from(format!("{home}/Applications")),
+        ] {
             if dir.is_dir() {
                 scanned_dirs.push(dir.display().to_string());
-                scan_dir(&dir, 4, "Applications", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+                scan_dir(
+                    &dir,
+                    4,
+                    "Applications",
+                    &mut items,
+                    &mut seen,
+                    &mut scripts_skipped,
+                    &mut unreadable,
+                );
             }
         }
     }
@@ -99,14 +110,30 @@ pub fn scan(opts: &ScanOptions) -> Report {
     if opts.path {
         scanned_dirs.push("$PATH (shell de connexion)".to_string());
         for dir in login_shell_path() {
-            scan_dir(&dir, 1, "PATH", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+            scan_dir(
+                &dir,
+                1,
+                "PATH",
+                &mut items,
+                &mut seen,
+                &mut scripts_skipped,
+                &mut unreadable,
+            );
         }
     }
 
     if opts.homebrew {
         for dir in homebrew_dirs() {
             scanned_dirs.push(dir.display().to_string());
-            scan_dir(&dir, 1, "Homebrew", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+            scan_dir(
+                &dir,
+                1,
+                "Homebrew",
+                &mut items,
+                &mut seen,
+                &mut scripts_skipped,
+                &mut unreadable,
+            );
         }
     }
 
@@ -115,7 +142,15 @@ pub fn scan(opts: &ScanOptions) -> Report {
             let dir = Path::new("/opt/local").join(sub);
             if dir.is_dir() {
                 scanned_dirs.push(dir.display().to_string());
-                scan_dir(&dir, 1, "MacPorts", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+                scan_dir(
+                    &dir,
+                    1,
+                    "MacPorts",
+                    &mut items,
+                    &mut seen,
+                    &mut scripts_skipped,
+                    &mut unreadable,
+                );
             }
         }
     }
@@ -132,11 +167,23 @@ pub fn scan(opts: &ScanOptions) -> Report {
         let dir = PathBuf::from(&expanded);
         if dir.is_dir() {
             scanned_dirs.push(expanded);
-            scan_dir(&dir, 4, "Dossier supplémentaire", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+            scan_dir(
+                &dir,
+                4,
+                "Dossier supplémentaire",
+                &mut items,
+                &mut seen,
+                &mut scripts_skipped,
+                &mut unreadable,
+            );
         }
     }
 
-    items.sort_by(|a, b| status_rank(&a.status).cmp(&status_rank(&b.status)).then_with(|| a.name.cmp(&b.name)));
+    items.sort_by(|a, b| {
+        status_rank(&a.status)
+            .cmp(&status_rank(&b.status))
+            .then_with(|| a.name.cmp(&b.name))
+    });
 
     Report {
         host: host_info(),
@@ -177,7 +224,11 @@ fn login_shell_path() -> Vec<PathBuf> {
         .ok()
         .filter(|o| o.status.success())
         .and_then(|o| String::from_utf8(o.stdout).ok())
-        .and_then(|s| s.lines().rev().find_map(|l| l.strip_prefix(marker).map(str::to_string)));
+        .and_then(|s| {
+            s.lines()
+                .rev()
+                .find_map(|l| l.strip_prefix(marker).map(str::to_string))
+        });
 
     match line {
         Some(p) => std::env::split_paths(&p).collect(),
@@ -216,9 +267,13 @@ fn homebrew_dirs() -> Vec<PathBuf> {
                 dirs.push(d);
             }
         }
-        let Ok(formulas) = std::fs::read_dir(prefix.join("Cellar")) else { continue };
+        let Ok(formulas) = std::fs::read_dir(prefix.join("Cellar")) else {
+            continue;
+        };
         for formula in formulas.flatten() {
-            let Ok(versions) = std::fs::read_dir(formula.path()) else { continue };
+            let Ok(versions) = std::fs::read_dir(formula.path()) else {
+                continue;
+            };
             for version in versions.flatten() {
                 for sub in ["bin", "sbin"] {
                     let d = version.path().join(sub);
@@ -244,10 +299,14 @@ fn walk(dir: &Path, max_depth: u32, out: &mut Vec<Found>) {
     if max_depth == 0 {
         return;
     }
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
-        let Ok(meta) = std::fs::metadata(&path) else { continue }; // suit les symlinks
+        let Ok(meta) = std::fs::metadata(&path) else {
+            continue;
+        }; // suit les symlinks
         if meta.is_dir() {
             if path.extension().is_some_and(|e| e == "app") {
                 out.push(Found::App(path));
@@ -323,7 +382,11 @@ fn add_app(path: &Path, source: &str, items: &mut Vec<Item>, seen: &mut HashSet<
         return;
     }
 
-    let bundle_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("?").to_string();
+    let bundle_stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("?")
+        .to_string();
     let (info_dir, exe_dir) = bundle_layout(path);
     let info: InfoPlist = plist::from_file(info_dir.join("Info.plist")).unwrap_or_default();
     let exe_name = info.executable.unwrap_or_else(|| bundle_stem.clone());
@@ -376,7 +439,11 @@ fn add_exec(
             let status = macho::classify(&archs).as_str().to_string();
             items.push(Item {
                 kind: "exec".to_string(),
-                name: path.file_name().and_then(|n| n.to_str()).unwrap_or("?").to_string(),
+                name: path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("?")
+                    .to_string(),
                 version: None,
                 path: path.display().to_string(),
                 real_path: real.display().to_string(),
@@ -466,7 +533,15 @@ mod tests {
         let mut seen = HashSet::new();
         let mut scripts_skipped = 0;
         let mut unreadable = 0;
-        scan_dir(&tmp, 1, "Test", &mut items, &mut seen, &mut scripts_skipped, &mut unreadable);
+        scan_dir(
+            &tmp,
+            1,
+            "Test",
+            &mut items,
+            &mut seen,
+            &mut scripts_skipped,
+            &mut unreadable,
+        );
 
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].status, "intel_only");
@@ -490,7 +565,11 @@ mod tests {
         add_exec(&bin, "First", &mut items, &mut seen, &mut a, &mut b);
         add_exec(&bin, "Second", &mut items, &mut seen, &mut a, &mut b);
 
-        assert_eq!(items.len(), 1, "le second passage sur le même chemin réel ne doit pas dupliquer");
+        assert_eq!(
+            items.len(),
+            1,
+            "le second passage sur le même chemin réel ne doit pas dupliquer"
+        );
 
         std::fs::remove_dir_all(&tmp).ok();
     }
@@ -587,7 +666,10 @@ mod tests {
         let mut seen = HashSet::new();
         add_app(&tmp.join("WebApp.app"), "Test", &mut items, &mut seen);
 
-        assert!(items.is_empty(), "une web-app sans exécutable ne doit produire aucun item");
+        assert!(
+            items.is_empty(),
+            "une web-app sans exécutable ne doit produire aucun item"
+        );
 
         std::fs::remove_dir_all(&tmp).ok();
     }

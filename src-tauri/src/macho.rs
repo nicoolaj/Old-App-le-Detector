@@ -127,9 +127,7 @@ fn archs_from_header(buf: &[u8]) -> Option<Vec<Arch>> {
             let cputype = u32_at(buf, 4, big_endian)?;
             Arch::from_cputype(cputype).map(|a| vec![a])
         }
-        FAT_MAGIC | FAT_CIGAM | FAT_MAGIC_64 | FAT_CIGAM_64 => {
-            fat_archs(buf, magic)
-        }
+        FAT_MAGIC | FAT_CIGAM | FAT_MAGIC_64 | FAT_CIGAM_64 => fat_archs(buf, magic),
         _ => None,
     }
 }
