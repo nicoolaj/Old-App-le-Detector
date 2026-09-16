@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Lecture des architectures d'un binaire Mach-O directement depuis son en-tête,
 //! sans dépendre de `file` ou `lipo` (qui exigent les Xcode CLT).
 //!

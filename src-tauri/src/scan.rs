@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 //! Parcours des sources (Applications, Spotlight, PATH, Homebrew, MacPorts,
 //! dossiers supplémentaires) et classification de chaque binaire trouvé.
 //!
@@ -15,6 +17,7 @@ pub struct HostInfo {
     pub hostname: String,
     pub arch: String,
     pub macos_version: String,
+    pub app_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,7 +63,13 @@ pub fn host_info() -> HostInfo {
         },
         macos_version: run_trimmed("sw_vers", &["-productVersion"])
             .unwrap_or_else(|| "inconnue".to_string()),
+        app_version: short_version(env!("CARGO_PKG_VERSION")),
     }
+}
+
+/// "0.1.0" -> "0.1" (patch nul superflu à l'affichage) ; "1.2.3" inchangé.
+pub(crate) fn short_version(v: &str) -> String {
+    v.strip_suffix(".0").unwrap_or(v).to_string()
 }
 
 pub fn scan(opts: &ScanOptions) -> Report {
@@ -385,6 +394,13 @@ fn add_exec(
 mod tests {
     use super::*;
     use std::io::Write;
+
+    #[test]
+    fn short_version_strips_trailing_zero_patch() {
+        assert_eq!(short_version("0.1.0"), "0.1");
+        assert_eq!(short_version("1.0.0"), "1.0");
+        assert_eq!(short_version("1.2.3"), "1.2.3"); // pas de .0 final -> inchangé
+    }
 
     fn write_thin_x86_64(path: &Path) {
         // MH_MAGIC_64 (little-endian) + cputype x86_64 (little-endian) + padding.

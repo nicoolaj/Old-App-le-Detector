@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 mod macho;
 mod scan;
 
@@ -119,10 +121,83 @@ fn to_csv(report: &Report) -> String {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// Menu macOS par défaut de Tauri (App/Edit/View/Window), avec l'item
+/// "About" personnalisé : nom, version courte, icône et libellé en français
+/// ("À propos de Old App Detector" plutôt que le "About <nom du crate>"
+/// généré par défaut).
+fn build_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{AboutMetadataBuilder, Menu, PredefinedMenuItem, Submenu};
+
+    const APP_NAME: &str = "Old App(le) Detector";
+
+    let about_metadata = AboutMetadataBuilder::new()
+        .name(Some(APP_NAME))
+        .version(Some(scan::short_version(env!("CARGO_PKG_VERSION"))))
+        .copyright(Some("© 2026 Nicolas Jalibert"))
+        .icon(app.default_window_icon().cloned())
+        .build();
+
+    let app_menu = Submenu::with_items(
+        app,
+        APP_NAME,
+        true,
+        &[
+            &PredefinedMenuItem::about(
+                app,
+                Some(&format!("À propos de {APP_NAME}")),
+                Some(about_metadata),
+            )?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::services(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::hide(app, None)?,
+            &PredefinedMenuItem::hide_others(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::quit(app, None)?,
+        ],
+    )?;
+
+    let edit_menu = Submenu::with_items(
+        app,
+        "Edit",
+        true,
+        &[
+            &PredefinedMenuItem::undo(app, None)?,
+            &PredefinedMenuItem::redo(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::cut(app, None)?,
+            &PredefinedMenuItem::copy(app, None)?,
+            &PredefinedMenuItem::paste(app, None)?,
+            &PredefinedMenuItem::select_all(app, None)?,
+        ],
+    )?;
+
+    let view_menu = Submenu::with_items(app, "View", true, &[&PredefinedMenuItem::fullscreen(app, None)?])?;
+
+    let window_menu = Submenu::with_items(
+        app,
+        "Window",
+        true,
+        &[
+            &PredefinedMenuItem::minimize(app, None)?,
+            &PredefinedMenuItem::maximize(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &PredefinedMenuItem::close_window(app, None)?,
+        ],
+    )?;
+
+    Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            let menu = build_menu(app.handle())?;
+            app.set_menu(menu)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![host_info, scan, export_report])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -135,7 +210,12 @@ mod tests {
 
     fn sample_report() -> Report {
         Report {
-            host: HostInfo { hostname: "mac-test".into(), arch: "arm64".into(), macos_version: "26.7".into() },
+            host: HostInfo {
+                hostname: "mac-test".into(),
+                arch: "arm64".into(),
+                macos_version: "26.7".into(),
+                app_version: "0.1".into(),
+            },
             generated_at: "16/09/2026 10:00:00".into(),
             scanned_dirs: vec!["/Applications".into()],
             items: vec![

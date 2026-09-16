@@ -1,8 +1,8 @@
-# OldAppDetector
+# Old App(le) Detector
 
 Détecte les applications et exécutables **Intel (x86_64) sans version Apple Silicon (arm64)** sur un Mac, avant la fin du support de Rosetta 2.
 
-Apple retire progressivement Rosetta 2 (la couche de traduction qui permet aux Mac Apple Silicon d'exécuter du code Intel). Une fois ce support disparu, tout logiciel n'ayant pas de version arm64 natif cessera de fonctionner. OldAppDetector fait l'inventaire de ce qui est concerné — **pas seulement les `.app`**, mais aussi tous les exécutables accessibles depuis le `PATH`, Homebrew et MacPorts.
+Apple retire progressivement Rosetta 2 (la couche de traduction qui permet aux Mac Apple Silicon d'exécuter du code Intel). Une fois ce support disparu, tout logiciel n'ayant pas de version arm64 natif cessera de fonctionner. Old App(le) Detector fait l'inventaire de ce qui est concerné — **pas seulement les `.app`**, mais aussi tous les exécutables accessibles depuis le `PATH`, Homebrew et MacPorts.
 
 ## Fonctionnalités
 
@@ -69,3 +69,9 @@ Makefile                 Cibles help / secu / app / pkg
 - Les exécutables imbriqués dans un bundle (helpers, plugins, Audio Units, extensions Safari) ne sont pas inspectés.
 - Ne détecte pas les processus *actuellement* traduits par Rosetta (voir le Moniteur d'activité pour ça) — c'est un audit statique du disque, pas du runtime.
 - Kexts et LaunchAgents/LaunchDaemons hors périmètre.
+
+## Licence
+
+MIT — voir [LICENSE](LICENSE). Chaque fichier source porte aussi son propre
+en-tête `SPDX-License-Identifier: MIT`, pour que la licence reste attachée au
+code même si ce fichier `LICENSE` venait à disparaître d'une copie donnée.

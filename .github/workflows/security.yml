@@ -1,0 +1,42 @@
+name: Sécurité et bonnes pratiques
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src-tauri/**"
+      - "Makefile"
+      - ".github/workflows/security.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src-tauri/**"
+      - "Makefile"
+      - ".github/workflows/security.yml"
+  schedule:
+    - cron: "0 6 * * 1" # audit hebdomadaire des nouvelles failles connues
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: fmt / clippy / cargo audit
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: cargo fmt --check
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+
+      - name: cargo clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: cargo audit
+        run: make secu

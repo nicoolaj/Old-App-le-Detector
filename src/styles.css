@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+
 :root {
   font-family: -apple-system, Inter, Avenir, Helvetica, Arial, sans-serif;
   font-size: 14px;
@@ -45,6 +47,13 @@ body {
 h1 {
   margin: 0;
   font-size: 1.5rem;
+}
+
+.version-tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  vertical-align: middle;
 }
 
 .subtitle {

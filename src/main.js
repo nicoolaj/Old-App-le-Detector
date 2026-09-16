@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 const { invoke } = window.__TAURI__.core;
 
 let lastReport = null;
@@ -24,6 +26,7 @@ function escapeHtml(value) {
 async function loadHostInfo() {
   try {
     const host = await invoke("host_info");
+    el("app-version").textContent = `v${host.app_version}`;
     el("host-name").textContent = host.hostname;
     el("host-macos").textContent = `macOS ${host.macos_version}`;
     const isAppleSilicon = host.arch === "arm64";

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 .DEFAULT_GOAL := help
 TARGET := universal-apple-darwin
 
