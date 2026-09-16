@@ -32,11 +32,5 @@ jobs:
         with:
           workspaces: src-tauri
 
-      - name: cargo fmt --check
-        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
-
-      - name: cargo clippy
-        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-
-      - name: cargo audit
+      - name: make secu (fmt, clippy, cargo audit)
         run: make secu
