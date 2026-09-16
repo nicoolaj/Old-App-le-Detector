@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    name: Build .app / .dmg + publier la release
+    name: Build .app / .dmg + publish release
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -26,7 +26,7 @@ jobs:
       - name: Build universal .dmg (make pkg)
         run: make pkg
 
-      - name: Publier la release GitHub
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true

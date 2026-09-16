@@ -1,4 +1,4 @@
-name: Sécurité et bonnes pratiques
+name: Security and best practices
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
       - "Makefile"
       - ".github/workflows/security.yml"
   schedule:
-    - cron: "0 6 * * 1" # audit hebdomadaire des nouvelles failles connues
+    - cron: "0 6 * * 1" # weekly audit for newly-disclosed vulnerabilities
   workflow_dispatch:
 
 jobs:
