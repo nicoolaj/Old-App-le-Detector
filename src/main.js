@@ -1,20 +1,15 @@
 // SPDX-License-Identifier: MIT
 
+import { t, applyStaticTranslations, locale } from "./i18n.js";
+
 const { invoke } = window.__TAURI__.core;
 
 let lastReport = null;
 
 const el = (id) => document.getElementById(id);
 
-const STATUS_LABELS = {
-  intel_only: "Nécessite Rosetta 2",
-  obsolete: "Obsolète",
-  unknown: "Indéterminé",
-  native: "Natif (arm64)",
-};
-
 function statusLabel(status) {
-  return STATUS_LABELS[status] ?? status;
+  return t(`status.${status}`);
 }
 
 function escapeHtml(value) {
@@ -34,7 +29,7 @@ async function loadHostInfo() {
     badge.textContent = isAppleSilicon ? "Apple Silicon" : "Intel";
     badge.classList.add(isAppleSilicon ? "badge-arm" : "badge-intel");
   } catch (err) {
-    el("host-name").textContent = "Machine inconnue";
+    el("host-name").textContent = t("hostUnknown");
     console.error(err);
   }
 }
@@ -59,7 +54,7 @@ function renderTable(report) {
     .map(
       (item) => `
       <tr>
-        <td>${item.kind === "app" ? "App" : "Exécutable"}</td>
+        <td>${item.kind === "app" ? t("kindApp") : t("kindExec")}</td>
         <td class="cell-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</td>
         <td>${escapeHtml(item.version ?? "—")}</td>
         <td class="cell-path" title="${escapeHtml(item.real_path)}">${escapeHtml(item.path)}</td>
@@ -80,10 +75,15 @@ function renderSummary(report) {
   const obsolete = report.items.filter((item) => item.status === "obsolete").length;
   const unknown = report.items.filter((item) => item.status === "unknown").length;
 
-  el("summary-text").textContent =
-    `${apps} app(s), ${execs} exécutable(s) analysés — ` +
-    `${intelOnly} nécessitent Rosetta 2, ${obsolete} obsolète(s), ${unknown} indéterminé(s). ` +
-    `${report.scripts_skipped} script(s) ignoré(s), ${report.unreadable} fichier(s) illisible(s).`;
+  el("summary-text").textContent = t("summaryText", {
+    apps,
+    execs,
+    intelOnly,
+    obsolete,
+    unknown,
+    scriptsSkipped: report.scripts_skipped,
+    unreadable: report.unreadable,
+  });
 
   el("summary-panel").hidden = false;
   el("export-txt").disabled = false;
@@ -93,7 +93,7 @@ function renderSummary(report) {
 async function runScan() {
   const btn = el("scan-btn");
   btn.disabled = true;
-  btn.textContent = "Scan en cours…";
+  btn.textContent = t("scanning");
   el("scan-status").textContent = "";
   el("export-msg").textContent = "";
 
@@ -103,11 +103,11 @@ async function runScan() {
     renderSummary(report);
     renderTable(report);
   } catch (err) {
-    el("scan-status").textContent = `Erreur pendant le scan : ${err}`;
+    el("scan-status").textContent = t("scanError", { err });
     console.error(err);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Scanner";
+    btn.textContent = t("scanBtn");
   }
 }
 
@@ -116,15 +116,16 @@ async function exportReport(format) {
   const msg = el("export-msg");
   msg.textContent = "";
   try {
-    const path = await invoke("export_report", { format, report: lastReport });
-    msg.textContent = path ? `Fichier enregistré : ${path}` : "Export annulé.";
+    const path = await invoke("export_report", { format, report: lastReport, locale });
+    msg.textContent = path ? t("exportSaved", { path }) : t("exportCancelled");
   } catch (err) {
-    msg.textContent = `Erreur pendant l'export : ${err}`;
+    msg.textContent = t("exportError", { err });
     console.error(err);
   }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+  applyStaticTranslations();
   loadHostInfo();
   el("scan-btn").addEventListener("click", runScan);
   el("show-native").addEventListener("change", () => {

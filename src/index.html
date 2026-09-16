@@ -14,38 +14,38 @@
       <header class="app-header">
         <div>
           <h1>Old App(le) Detector <span id="app-version" class="version-tag"></span></h1>
-          <p class="subtitle">Audit des binaires Intel avant la fin de Rosetta&nbsp;2</p>
+          <p class="subtitle" data-i18n="subtitle">Audit des binaires Intel avant la fin de Rosetta&nbsp;2</p>
         </div>
         <div class="host-info" id="host-info">
-          <span id="host-name">Chargement…</span>
+          <span id="host-name" data-i18n="loading">Chargement…</span>
           <span id="host-arch-badge" class="badge"></span>
           <span id="host-macos"></span>
         </div>
       </header>
 
       <section class="panel">
-        <h2>Sources à analyser</h2>
+        <h2 data-i18n="sourcesTitle">Sources à analyser</h2>
         <div class="checkboxes">
-          <label><input type="checkbox" id="src-apps" checked /> Applications (/Applications, ~/Applications)</label>
-          <label><input type="checkbox" id="src-spotlight" checked /> Spotlight (apps indexées ailleurs sur le disque)</label>
-          <label><input type="checkbox" id="src-path" checked /> $PATH (exécutables du shell de connexion)</label>
-          <label><input type="checkbox" id="src-homebrew" checked /> Homebrew (/opt/homebrew, /usr/local)</label>
-          <label><input type="checkbox" id="src-macports" checked /> MacPorts (/opt/local)</label>
+          <label><input type="checkbox" id="src-apps" checked /> <span data-i18n="srcApps">Applications (/Applications, ~/Applications)</span></label>
+          <label><input type="checkbox" id="src-spotlight" checked /> <span data-i18n="srcSpotlight">Spotlight (apps indexées ailleurs sur le disque)</span></label>
+          <label><input type="checkbox" id="src-path" checked /> <span data-i18n="srcPath">$PATH (exécutables du shell de connexion)</span></label>
+          <label><input type="checkbox" id="src-homebrew" checked /> <span data-i18n="srcHomebrew">Homebrew (/opt/homebrew, /usr/local)</span></label>
+          <label><input type="checkbox" id="src-macports" checked /> <span data-i18n="srcMacports">MacPorts (/opt/local)</span></label>
         </div>
-        <label class="field-label" for="extra-dirs">Dossiers supplémentaires (un par ligne)</label>
+        <label class="field-label" for="extra-dirs" data-i18n="extraDirsLabel">Dossiers supplémentaires (un par ligne)</label>
         <textarea id="extra-dirs" rows="2" placeholder="/Volumes/Data/Outils&#10;~/bin"></textarea>
-        <button id="scan-btn">Scanner</button>
+        <button id="scan-btn" data-i18n="scanBtn">Scanner</button>
         <p id="scan-status" class="scan-status" role="status"></p>
       </section>
 
       <section class="panel" id="summary-panel" hidden>
-        <h2>Résumé</h2>
+        <h2 data-i18n="summaryTitle">Résumé</h2>
         <p id="summary-text"></p>
         <div class="summary-controls">
-          <label><input type="checkbox" id="show-native" /> Afficher aussi les binaires natifs (arm64)</label>
+          <label><input type="checkbox" id="show-native" /> <span data-i18n="showNative">Afficher aussi les binaires natifs (arm64)</span></label>
           <div class="export-buttons">
-            <button id="export-txt" disabled>Exporter en TXT</button>
-            <button id="export-csv" disabled>Exporter en CSV</button>
+            <button id="export-txt" disabled data-i18n="exportTxtBtn">Exporter en TXT</button>
+            <button id="export-csv" disabled data-i18n="exportCsvBtn">Exporter en CSV</button>
           </div>
         </div>
         <p id="export-msg" class="export-msg" role="status"></p>
@@ -55,13 +55,13 @@
         <table id="results-table">
           <thead>
             <tr>
-              <th>Type</th>
-              <th>Nom</th>
-              <th>Version</th>
-              <th>Chemin</th>
-              <th>Source</th>
-              <th>Architectures</th>
-              <th>Statut</th>
+              <th data-i18n="thType">Type</th>
+              <th data-i18n="thName">Nom</th>
+              <th data-i18n="thVersion">Version</th>
+              <th data-i18n="thPath">Chemin</th>
+              <th data-i18n="thSource">Source</th>
+              <th data-i18n="thArchs">Architectures</th>
+              <th data-i18n="thStatus">Statut</th>
             </tr>
           </thead>
           <tbody id="results-body"></tbody>

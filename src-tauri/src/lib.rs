@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 
+mod locale;
 mod macho;
 mod scan;
 
+use locale::Strings;
 use scan::{Item, Report};
 use tauri_plugin_dialog::DialogExt;
 
@@ -25,11 +27,13 @@ async fn export_report(
     app: tauri::AppHandle,
     format: String,
     report: Report,
+    locale: String,
 ) -> Result<Option<String>, String> {
+    let strings = locale::for_locale(&locale);
     let (ext, content) = match format.as_str() {
-        "csv" => ("csv", to_csv(&report)),
-        "txt" => ("txt", to_txt(&report)),
-        other => return Err(format!("Format d'export inconnu : {other}")),
+        "csv" => ("csv", to_csv(&report, strings)),
+        "txt" => ("txt", to_txt(&report, strings)),
+        other => return Err(format!("{}: {other}", strings.unknown_format_error)),
     };
     let file_name = format!("audit-rosetta-{}.{}", report.host.hostname, ext);
 
@@ -46,14 +50,33 @@ async fn export_report(
     Ok(Some(path.display().to_string()))
 }
 
-fn to_txt(report: &Report) -> String {
+/// Aligne une liste de paires (libellé, valeur) sur la largeur du plus long
+/// libellé : nécessaire car "Généré le" et "Generated on" n'ont pas la même
+/// longueur, un padding en dur ne peut pas marcher pour les deux langues.
+fn write_aligned_rows(s: &mut String, rows: &[(&str, String)]) {
+    let width = rows
+        .iter()
+        .map(|(label, _)| label.chars().count())
+        .max()
+        .unwrap_or(0);
+    for (label, value) in rows {
+        s.push_str(&format!("{label:<width$} : {value}\n"));
+    }
+}
+
+fn to_txt(report: &Report, strings: &Strings) -> String {
     let mut s = String::new();
     s.push_str("=== Audit Rosetta 2 / OldAppDetector ===\n\n");
-    s.push_str(&format!("Machine        : {}\n", report.host.hostname));
-    s.push_str(&format!("Architecture   : {}\n", report.host.arch));
-    s.push_str(&format!("macOS          : {}\n", report.host.macos_version));
-    s.push_str(&format!("Généré le      : {}\n", report.generated_at));
-    s.push_str("Dossiers scannés :\n");
+    write_aligned_rows(
+        &mut s,
+        &[
+            (strings.host_label, report.host.hostname.clone()),
+            (strings.arch_label, report.host.arch.clone()),
+            (strings.macos_label, report.host.macos_version.clone()),
+            (strings.generated_label, report.generated_at.clone()),
+        ],
+    );
+    s.push_str(&format!("{}\n", strings.scanned_dirs_label));
     for d in &report.scanned_dirs {
         s.push_str(&format!("  - {d}\n"));
     }
@@ -81,55 +104,34 @@ fn to_txt(report: &Report) -> String {
         .collect();
     let native_count = report.items.iter().filter(|i| i.status == "native").count();
 
-    write_txt_section(&mut s, "Apps nécessitant Rosetta 2", &apps_intel);
-    write_txt_section(&mut s, "Exécutables nécessitant Rosetta 2", &execs_intel);
-    write_txt_section(
-        &mut s,
-        "Obsolètes (architecture trop ancienne, déjà inexécutable)",
-        &obsolete,
-    );
-    write_txt_section(
-        &mut s,
-        "Indéterminés (lecture de l'exécutable impossible)",
-        &unknown,
-    );
+    write_txt_section(&mut s, strings.apps_intel_title, &apps_intel, strings);
+    write_txt_section(&mut s, strings.execs_intel_title, &execs_intel, strings);
+    write_txt_section(&mut s, strings.obsolete_title, &obsolete, strings);
+    write_txt_section(&mut s, strings.unknown_title, &unknown, strings);
 
-    s.push_str("--- Résumé ---\n");
-    s.push_str(&format!(
-        "Apps nécessitant Rosetta 2      : {}\n",
-        apps_intel.len()
-    ));
-    s.push_str(&format!(
-        "Exécutables nécessitant Rosetta 2 : {}\n",
-        execs_intel.len()
-    ));
-    s.push_str(&format!(
-        "Obsolètes                       : {}\n",
-        obsolete.len()
-    ));
-    s.push_str(&format!(
-        "Indéterminés                    : {}\n",
-        unknown.len()
-    ));
-    s.push_str(&format!(
-        "Natifs (arm64)                   : {}\n",
-        native_count
-    ));
-    s.push_str(&format!(
-        "Scripts ignorés                  : {}\n",
-        report.scripts_skipped
-    ));
-    s.push_str(&format!(
-        "Illisibles                       : {}\n",
-        report.unreadable
-    ));
+    s.push_str(&format!("{}\n", strings.summary_title));
+    write_aligned_rows(
+        &mut s,
+        &[
+            (strings.summary_apps_intel, apps_intel.len().to_string()),
+            (strings.summary_execs_intel, execs_intel.len().to_string()),
+            (strings.summary_obsolete, obsolete.len().to_string()),
+            (strings.summary_unknown, unknown.len().to_string()),
+            (strings.summary_native, native_count.to_string()),
+            (
+                strings.summary_scripts_skipped,
+                report.scripts_skipped.to_string(),
+            ),
+            (strings.summary_unreadable, report.unreadable.to_string()),
+        ],
+    );
     s
 }
 
-fn write_txt_section(s: &mut String, title: &str, items: &[&Item]) {
+fn write_txt_section(s: &mut String, title: &str, items: &[&Item], strings: &Strings) {
     s.push_str(&format!("--- {title} ({}) ---\n", items.len()));
     if items.is_empty() {
-        s.push_str("  (aucun)\n");
+        s.push_str(&format!("  {}\n", strings.none_label));
     }
     for item in items {
         let where_ = if item.path == item.real_path {
@@ -144,8 +146,12 @@ fn write_txt_section(s: &mut String, title: &str, items: &[&Item]) {
             item.archs.join(", ")
         };
         s.push_str(&format!(
-            "  [{}] {} ({version}) — {where_} — source: {} — archs: {archs}\n",
-            item.kind, item.name, item.source
+            "  [{kind}] {name} ({version}) — {where_} — {source_lbl}: {source} — {archs_lbl}: {archs}\n",
+            kind = item.kind,
+            name = item.name,
+            source_lbl = strings.source_label,
+            source = item.source,
+            archs_lbl = strings.archs_label,
         ));
     }
     s.push('\n');
@@ -155,9 +161,10 @@ fn csv_field(s: &str) -> String {
     format!("\"{}\"", s.replace('"', "\"\""))
 }
 
-fn to_csv(report: &Report) -> String {
+fn to_csv(report: &Report, strings: &Strings) -> String {
     let mut s = String::from("\u{FEFF}"); // BOM UTF-8, sinon Excel FR décode mal les accents
-    s.push_str("type;nom;version;chemin;chemin_reel;source;architectures;statut\r\n");
+    s.push_str(strings.csv_header);
+    s.push_str("\r\n");
     for item in &report.items {
         let version = item.version.as_deref().unwrap_or("");
         let archs = item.archs.join(", ");
@@ -309,7 +316,7 @@ mod tests {
 
     #[test]
     fn csv_escapes_quotes_and_has_bom_and_header() {
-        let csv = to_csv(&sample_report());
+        let csv = to_csv(&sample_report(), locale::for_locale("fr"));
         assert!(csv.starts_with('\u{FEFF}'));
         assert!(csv.contains("type;nom;version;chemin;chemin_reel;source;architectures;statut\r\n"));
         // Le guillemet dans le nom doit être doublé, pas échappé en backslash.
@@ -319,21 +326,43 @@ mod tests {
 
     #[test]
     fn csv_has_one_data_row_per_item() {
-        let csv = to_csv(&sample_report());
+        let csv = to_csv(&sample_report(), locale::for_locale("fr"));
         assert_eq!(csv.lines().count(), 1 + 2); // en-tête + 2 items
     }
 
     #[test]
+    fn csv_header_follows_locale() {
+        let csv = to_csv(&sample_report(), locale::for_locale("en"));
+        assert!(csv.contains("type;name;version;path;real_path;source;architectures;status\r\n"));
+    }
+
+    #[test]
     fn txt_shows_symlink_arrow_for_real_path_mismatch() {
-        let txt = to_txt(&sample_report());
+        let txt = to_txt(&sample_report(), locale::for_locale("fr"));
         assert!(txt.contains("/usr/local/bin/outil → /usr/local/Cellar/outil/1.0/bin/outil"));
     }
 
     #[test]
     fn txt_summary_counts_match_items() {
-        let txt = to_txt(&sample_report());
+        let txt = to_txt(&sample_report(), locale::for_locale("fr"));
         assert!(txt.contains("Apps nécessitant Rosetta 2 (1)"));
-        assert!(txt.contains("Scripts ignorés                  : 3"));
-        assert!(txt.contains("Illisibles                       : 1"));
+        assert!(txt.contains("Scripts ignorés"));
+        assert!(txt.contains("Illisibles"));
+        // Le résumé aligne les libellés sur la largeur du plus long : on
+        // vérifie le contenu de la ligne plutôt qu'un padding en dur.
+        let scripts_line = txt
+            .lines()
+            .find(|l| l.starts_with("Scripts ignorés"))
+            .unwrap();
+        assert!(scripts_line.trim_end().ends_with(": 3"));
+        let unreadable_line = txt.lines().find(|l| l.starts_with("Illisibles")).unwrap();
+        assert!(unreadable_line.trim_end().ends_with(": 1"));
+    }
+
+    #[test]
+    fn txt_falls_back_to_english_for_unsupported_locale() {
+        let txt = to_txt(&sample_report(), locale::for_locale("de"));
+        assert!(txt.contains("Apps requiring Rosetta 2 (1)"));
+        assert!(txt.contains("Host"));
     }
 }
