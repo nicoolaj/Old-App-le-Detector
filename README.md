@@ -1,8 +1,16 @@
 # Old App(le) Detector
 
+[![Dernière release](https://img.shields.io/github/v/release/nicoolaj/Old-App-le-Detector?label=derni%C3%A8re%20release)](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest)
+
 Détecte les applications et exécutables **Intel (x86_64) sans version Apple Silicon (arm64)** sur un Mac, avant la fin du support de Rosetta 2.
 
 Apple retire progressivement Rosetta 2 (la couche de traduction qui permet aux Mac Apple Silicon d'exécuter du code Intel). Une fois ce support disparu, tout logiciel n'ayant pas de version arm64 natif cessera de fonctionner. Old App(le) Detector fait l'inventaire de ce qui est concerné — **pas seulement les `.app`**, mais aussi tous les exécutables accessibles depuis le `PATH`, Homebrew et MacPorts.
+
+## Téléchargement
+
+👉 [**Dernière version (.dmg)**](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest) — télécharger, ouvrir le `.dmg`, glisser l'app dans `Applications`.
+
+Toutes les versions : [page des releases](https://github.com/nicoolaj/Old-App-le-Detector/releases).
 
 ## Fonctionnalités
 
