@@ -1,85 +1,48 @@
+**English** | [Français](README.fr.md)
+
 # Old App(le) Detector
 
-[![Dernière release](https://img.shields.io/github/v/release/nicoolaj/Old-App-le-Detector?label=derni%C3%A8re%20release)](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/nicoolaj/Old-App-le-Detector?label=latest%20release)](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-Détecte les applications et exécutables **Intel (x86_64) sans version Apple Silicon (arm64)** sur un Mac, avant la fin du support de Rosetta 2.
+Find out which apps on your Mac will stop working when Apple retires Rosetta 2.
 
-Apple retire progressivement Rosetta 2 (la couche de traduction qui permet aux Mac Apple Silicon d'exécuter du code Intel). Une fois ce support disparu, tout logiciel n'ayant pas de version arm64 natif cessera de fonctionner. Old App(le) Detector fait l'inventaire de ce qui est concerné — **pas seulement les `.app`**, mais aussi tous les exécutables accessibles depuis le `PATH`, Homebrew et MacPorts.
+Rosetta 2 is the compatibility layer that lets Apple Silicon Macs (M1, M2, M3...) run older Intel-only software. Apple is phasing it out — once it's gone, any app or command-line tool without a native Apple Silicon version will simply stop launching. Old App(le) Detector scans your Mac and tells you exactly what's affected, **not just apps in your Applications folder**, but also command-line tools installed via Homebrew, MacPorts, or anywhere on your `PATH`.
 
-## Téléchargement
+## Download
 
-👉 [**Dernière version (.dmg)**](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest) — télécharger, ouvrir le `.dmg`, glisser l'app dans `Applications`.
+👉 [**Latest version (.dmg)**](https://github.com/nicoolaj/Old-App-le-Detector/releases/latest)
 
-Toutes les versions : [page des releases](https://github.com/nicoolaj/Old-App-le-Detector/releases).
+1. Download the `.dmg`
+2. Open it
+3. Drag the app into your `Applications` folder
 
-## Fonctionnalités
+All versions: [releases page](https://github.com/nicoolaj/Old-App-le-Detector/releases).
 
-- **Détection fiable** : lit directement l'en-tête Mach-O de chaque binaire (thin ou universel) pour savoir quelles architectures il contient. Ne dépend ni de `file`, ni de `lipo`, ni des Xcode Command Line Tools.
-- **Sources multiples**, activables indépendamment :
-  - `/Applications` et `~/Applications`
-  - Spotlight (`mdfind`) — trouve les apps installées ailleurs sur le disque
-  - `$PATH` résolu depuis le **shell de connexion** (une app lancée depuis le Finder n'hérite pas du PATH étendu par `.zshrc`)
-  - Homebrew (`/opt/homebrew` et `/usr/local`, y compris les formules keg-only dans `Cellar/`)
-  - MacPorts (`/opt/local`)
-  - Dossiers supplémentaires au choix
-- **Classement** par statut : nécessite Rosetta 2 (Intel only), obsolète (i386/PowerPC, déjà inexécutable), indéterminé (impossible de lire l'exécutable), natif (arm64).
-- **Export** du rapport en TXT (lisible) ou CSV (`;`, compatible Excel FR) via une boîte de dialogue native.
-- **Binaire universel** (arm64 + x86_64) : le même `.app` tourne sur les deux familles de Mac.
+## How to use it
 
-### Cas particuliers gérés
+1. Open the app and tick the sources you want to scan — Applications, Homebrew, MacPorts, your `PATH`, or any custom folder.
+2. Click **Scan**.
+3. Review the results, then click **Export as TXT** or **Export as CSV** if you want to keep a copy.
 
-- **Apps iOS installées sur Apple Silicon** (catégorie « iPhone et iPad » du Mac App Store) : leur bundle est enveloppé différemment (`Wrapper/<Nom>.app`, structure iOS sans `Contents/`). Elles sont toujours arm64 — jamais concernées par Rosetta.
-- **Raccourcis web (Safari « Ajouter au Dock », Progressive Web Apps Chrome)** : ces bundles n'ont parfois aucun exécutable propre. Ils sont exclus du rapport plutôt que de remonter comme « indéterminé ».
-- Un lanceur shell-script qui exécute un binaire séparé (ex. `mon-outil` → `mon-outil-bin`) reste classé **indéterminé** : l'architecture réelle ne peut pas être déduite automatiquement, mieux vaut le signaler que deviner.
+## Understanding the results
 
-## Utilisation
+| Status | What it means |
+|---|---|
+| **Requires Rosetta 2** | Intel-only today — will stop working once Rosetta 2 is retired |
+| **Obsolete** | Even older architecture (32-bit/PowerPC) — already broken on this Mac |
+| **Unknown** | Couldn't be read — worth checking by hand |
+| **Native (arm64)** | Already Apple Silicon — nothing to do |
 
-```bash
-cargo tauri dev          # mode développement, rechargement à chaud
-```
+## Good to know
 
-Dans l'application : cocher les sources à analyser, cliquer **Scanner**, puis **Exporter en TXT/CSV** si besoin.
+- Helper executables tucked inside an app (plugins, extensions) aren't inspected — only the app or tool itself.
+- This is a snapshot of what's installed on disk, not of what's currently running — it won't tell you which apps are running under Rosetta *right now* (Activity Monitor does that).
 
-## Compilation
+## For developers
 
-Le `Makefile` fournit les cibles courantes :
+Want to build it from source, understand how it works, or contribute? See [CONTRIBUTING.md](CONTRIBUTING.md) (English) or [CONTRIBUTING.fr.md](CONTRIBUTING.fr.md) (Français).
 
-```bash
-make help   # liste les cibles disponibles
-make secu   # audit sécurité des dépendances Rust (cargo audit)
-make app    # construit le .app universel (arm64 + x86_64)
-make pkg    # construit le .dmg (inclut le .app)
-```
+## License
 
-Le `.app` est signé en ad hoc (`signingIdentity: "-"` dans `tauri.conf.json`), ce qui suffit pour un lancement local ou une distribution interne (MDM, partage réseau). Pour une distribution grand public hors Mac App Store, une signature Developer ID et la notarisation seraient nécessaires (non configurées ici).
-
-### Prérequis
-
-- macOS (Apple Silicon ou Intel)
-- [Rust](https://rustup.rs) avec les deux cibles Apple : `rustup target add aarch64-apple-darwin x86_64-apple-darwin`
-- [`tauri-cli`](https://v2.tauri.app) : `cargo install tauri-cli --locked` (les cibles `make app`/`make pkg` l'installent automatiquement si absent)
-
-Aucune dépendance côté frontend (HTML/CSS/JS vanilla, pas de Node/npm requis pour builder l'app — Node n'est utile que si vous modifiez l'outillage frontend vous-même).
-
-## Structure du projet
-
-```
-src/                    Frontend (HTML/CSS/JS vanilla)
-src-tauri/src/
-  macho.rs              Lecture des architectures depuis l'en-tête Mach-O
-  scan.rs                Parcours des sources + classification de chaque binaire
-  lib.rs                 Commandes Tauri (host_info, scan, export_report) + export TXT/CSV
-Makefile                 Cibles help / secu / app / pkg
-```
-
-## Limitations connues
-
-- Les exécutables imbriqués dans un bundle (helpers, plugins, Audio Units, extensions Safari) ne sont pas inspectés.
-- Ne détecte pas les processus *actuellement* traduits par Rosetta (voir le Moniteur d'activité pour ça) — c'est un audit statique du disque, pas du runtime.
-- Kexts et LaunchAgents/LaunchDaemons hors périmètre.
-
-## Licence
-
-MIT — voir [LICENSE](LICENSE). Chaque fichier source porte aussi son propre
-en-tête `SPDX-License-Identifier: MIT`, pour que la licence reste attachée au
-code même si ce fichier `LICENSE` venait à disparaître d'une copie donnée.
+MIT — see [LICENSE](LICENSE).
