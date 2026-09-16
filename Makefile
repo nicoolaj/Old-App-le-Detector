@@ -18,7 +18,13 @@ app: _tauri-cli  ## Construit le .app universel (arm64 + x86_64)
 pkg: _tauri-cli  ## Construit le .dmg (inclut le .app)
 	cargo tauri build --target $(TARGET) --bundles dmg
 
+clean:  ## Supprime les artefacts de build (src-tauri/target)
+	cd src-tauri && cargo clean
+
+mrproper: clean  ## Nettoyage complet (+ fichiers générés par Tauri : src-tauri/gen)
+	rm -rf src-tauri/gen
+
 _tauri-cli:
 	@cargo tauri --version >/dev/null 2>&1 || cargo install tauri-cli --locked
 
-.PHONY: help secu app pkg _tauri-cli
+.PHONY: help secu app pkg clean mrproper _tauri-cli
