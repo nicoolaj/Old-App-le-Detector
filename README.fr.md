@@ -23,7 +23,8 @@ Toutes les versions : [page des releases](https://github.com/nicoolaj/Old-App-le
 
 1. Ouvrez l'app et cochez les sources à analyser — Applications, Homebrew, MacPorts, votre `PATH`, ou un dossier personnalisé.
 2. Cliquez sur **Scanner**.
-3. Consultez les résultats, puis cliquez sur **Exporter en TXT** ou **Exporter en CSV** si vous souhaitez en garder une copie.
+3. Consultez les résultats.
+4. Cliquez éventuellement sur **Exporter en TXT** ou **Exporter en CSV** si vous souhaitez en garder une copie.
 
 ## Comprendre les résultats
 

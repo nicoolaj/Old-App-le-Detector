@@ -23,7 +23,8 @@ All versions: [releases page](https://github.com/nicoolaj/Old-App-le-Detector/re
 
 1. Open the app and tick the sources you want to scan — Applications, Homebrew, MacPorts, your `PATH`, or any custom folder.
 2. Click **Scan**.
-3. Review the results, then click **Export as TXT** or **Export as CSV** if you want to keep a copy.
+3. Review the results.
+4. Optionally click **Export as TXT** or **Export as CSV** if you want to keep a copy.
 
 ## Understanding the results
 
