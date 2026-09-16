@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "oldappdetector",
+  "productName": "OldAppDetector",
   "version": "0.1.0",
   "identifier": "com.infotrafic.oldappdetector",
   "build": {
@@ -10,9 +10,11 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "oldappdetector",
-        "width": 800,
-        "height": 600
+        "title": "OldAppDetector — Audit Rosetta 2",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 760,
+        "minHeight": 480
       }
     ],
     "security": {
@@ -28,6 +30,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }

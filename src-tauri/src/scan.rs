@@ -288,6 +288,26 @@ struct InfoPlist {
     display_name: Option<String>,
 }
 
+/// (dossier contenant Info.plist, dossier contenant l'exécutable) pour un
+/// bundle .app. Gère la structure classique (`Contents/{Info.plist,MacOS/}`)
+/// et celle des apps iOS installées sur Apple Silicon (Mac App Store,
+/// catégorie iPhone/iPad) : le vrai bundle est enveloppé dans
+/// `Wrapper/<Nom>.app` (visé par le symlink `WrappedBundle`) et suit la
+/// structure iOS — Info.plist et l'exécutable directement à la racine, pas
+/// dans Contents/. Ces apps sont toujours arm64 (jamais de version Intel).
+fn bundle_layout(path: &Path) -> (PathBuf, PathBuf) {
+    if path.join("Contents/Info.plist").is_file() {
+        return (path.join("Contents"), path.join("Contents/MacOS"));
+    }
+    if let Ok(target) = std::fs::read_link(path.join("WrappedBundle")) {
+        let wrapped = path.join(target);
+        if wrapped.join("Info.plist").is_file() {
+            return (wrapped.clone(), wrapped);
+        }
+    }
+    (path.join("Contents"), path.join("Contents/MacOS")) // repli : comportement classique même si absent
+}
+
 fn add_app(path: &Path, source: &str, items: &mut Vec<Item>, seen: &mut HashSet<PathBuf>) {
     let real = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     if !seen.insert(real.clone()) {
@@ -295,11 +315,20 @@ fn add_app(path: &Path, source: &str, items: &mut Vec<Item>, seen: &mut HashSet<
     }
 
     let bundle_stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("?").to_string();
-    let info: InfoPlist = plist::from_file(path.join("Contents/Info.plist")).unwrap_or_default();
+    let (info_dir, exe_dir) = bundle_layout(path);
+    let info: InfoPlist = plist::from_file(info_dir.join("Info.plist")).unwrap_or_default();
     let exe_name = info.executable.unwrap_or_else(|| bundle_stem.clone());
     let display_name = info.display_name.or(info.name).unwrap_or(bundle_stem);
+    let exe_path = exe_dir.join(&exe_name);
 
-    let exe_path = path.join("Contents/MacOS").join(&exe_name);
+    if !exe_path.is_file() {
+        // Bundle "vitrine" sans exécutable propre (web-app Safari/Chrome,
+        // LSTemplateApplication...) : rien à auditer, on l'ignore plutôt que
+        // d'afficher un "indéterminé" qui ne peut de toute façon jamais être
+        // Intel-only.
+        return;
+    }
+
     let (archs, status) = match macho::read_archs(&exe_path) {
         Ok(Some(a)) => {
             let s = macho::classify(&a).as_str().to_string();
@@ -467,6 +496,82 @@ mod tests {
 
         assert_eq!(found.len(), 1);
         assert!(matches!(&found[0], Found::App(p) if p == &app));
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    fn write_thin_arm64(path: &Path) {
+        let mut bytes = vec![0xCFu8, 0xFAu8, 0xEDu8, 0xFEu8];
+        bytes.extend_from_slice(&0x0100_000Cu32.to_le_bytes());
+        bytes.extend_from_slice(&[0u8; 8]);
+        std::fs::write(path, bytes).unwrap();
+        let mut perms = std::fs::metadata(path).unwrap().permissions();
+        std::os::unix::fs::PermissionsExt::set_mode(&mut perms, 0o755);
+        std::fs::set_permissions(path, perms).unwrap();
+    }
+
+    /// Reproduit la structure d'une app iOS installée sur Apple Silicon
+    /// (ex: AccuWeather via l'App Store) : `WrappedBundle` pointe vers
+    /// `Wrapper/<Nom>.app`, qui a Info.plist et l'exécutable à sa racine
+    /// (pas de Contents/). Ces apps sont toujours arm64.
+    #[test]
+    fn ios_wrapped_app_resolves_to_wrapped_binary() {
+        let tmp = std::env::temp_dir().join(format!("oad-test-ioswrap-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let app = tmp.join("Foo.app");
+        let wrapped = app.join("Wrapper/Foo.app");
+        std::fs::create_dir_all(&wrapped).unwrap();
+        std::os::unix::fs::symlink("Wrapper/Foo.app", app.join("WrappedBundle")).unwrap();
+
+        let mut plist_file = std::fs::File::create(wrapped.join("Info.plist")).unwrap();
+        write!(
+            plist_file,
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleExecutable</key><string>Foo</string>
+</dict></plist>"#
+        )
+        .unwrap();
+        write_thin_arm64(&wrapped.join("Foo"));
+
+        let mut items = Vec::new();
+        let mut seen = HashSet::new();
+        add_app(&app, "Test", &mut items, &mut seen);
+
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].status, "native");
+        // Le chemin affiché reste le bundle extérieur, pas Wrapper/Foo.app.
+        assert_eq!(items[0].path, app.display().to_string());
+
+        std::fs::remove_dir_all(&tmp).ok();
+    }
+
+    /// Reproduit une web-app Safari/Chrome (LSTemplateApplication) : un
+    /// Info.plist existe mais il n'y a aucun exécutable dans le bundle.
+    /// Ne peut structurellement jamais être Intel-only -> ignoré, pas
+    /// compté comme "indéterminé".
+    #[test]
+    fn template_app_without_executable_is_skipped() {
+        let tmp = std::env::temp_dir().join(format!("oad-test-template-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let app = tmp.join("WebApp.app/Contents");
+        std::fs::create_dir_all(&app).unwrap();
+        std::fs::write(
+            app.join("Info.plist"),
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>LSTemplateApplication</key><true/>
+</dict></plist>"#,
+        )
+        .unwrap();
+
+        let mut items = Vec::new();
+        let mut seen = HashSet::new();
+        add_app(&tmp.join("WebApp.app"), "Test", &mut items, &mut seen);
+
+        assert!(items.is_empty(), "une web-app sans exécutable ne doit produire aucun item");
 
         std::fs::remove_dir_all(&tmp).ok();
     }

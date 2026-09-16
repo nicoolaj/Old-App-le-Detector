@@ -1,112 +1,286 @@
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #ffe21c);
-}
 :root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
+  font-family: -apple-system, Inter, Avenir, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
   color: #0f0f0f;
   background-color: #f6f6f6;
+
+  --panel-bg: #ffffff;
+  --border: #dcdcdc;
+  --muted: #6b6b6b;
+  --pill-intel: #b3261e;
+  --pill-obsolete: #7a4a00;
+  --pill-unknown: #5c5c5c;
+  --pill-native: #256029;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
 }
 
 .container {
-  margin: 0;
-  padding-top: 10vh;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.app-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 h1 {
-  text-align: center;
+  margin: 0;
+  font-size: 1.5rem;
 }
 
-input,
+.subtitle {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+
+.host-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-arm {
+  background: #dff2e1;
+  color: var(--pill-native);
+}
+
+.badge-intel {
+  background: #fde4e2;
+  color: var(--pill-intel);
+}
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px 20px;
+  margin-bottom: 12px;
+}
+
+.checkboxes label,
+.summary-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  resize: vertical;
+  margin-bottom: 12px;
+  background: var(--panel-bg);
+  color: inherit;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
+  padding: 0.55em 1.3em;
+  font-size: 0.95em;
+  font-weight: 600;
   font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
+  color: #ffffff;
+  background-color: #396cd8;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
+button:hover:not(:disabled) {
+  background-color: #2f5bb8;
 }
 
-input,
-button {
-  outline: none;
+button:disabled {
+  background-color: #a9b8dd;
+  cursor: not-allowed;
 }
 
-#greet-input {
-  margin-right: 5px;
+.scan-status {
+  min-height: 1.2em;
+  color: #b3261e;
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+}
+
+.summary-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.export-buttons button {
+  background-color: #55606e;
+}
+
+.export-buttons button:hover:not(:disabled) {
+  background-color: #434c58;
+}
+
+.export-msg {
+  min-height: 1.2em;
+  color: var(--muted);
+  margin: 10px 0 0;
+  font-size: 0.9rem;
+}
+
+.table-panel {
+  padding: 0;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--panel-bg);
+  font-weight: 600;
+  z-index: 1;
+}
+
+.cell-name {
+  max-width: 220px;
+}
+
+.cell-path {
+  max-width: 380px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.cell-archs {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.status-pill-intel_only {
+  background: var(--pill-intel);
+}
+
+.status-pill-obsolete {
+  background: var(--pill-obsolete);
+}
+
+.status-pill-unknown {
+  background: var(--pill-unknown);
+}
+
+.status-pill-native {
+  background: var(--pill-native);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
+    color: #f0f0f0;
+    background-color: #202020;
+    --panel-bg: #2b2b2b;
+    --border: #3f3f3f;
+    --muted: #a0a0a0;
   }
 
-  a:hover {
-    color: #24c8db;
+  .badge-arm {
+    background: #17381c;
+    color: #7fd88a;
   }
 
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
+  .badge-intel {
+    background: #3d1a17;
+    color: #f19891;
   }
-  button:active {
-    background-color: #0f0f0f69;
+
+  textarea {
+    background: #1c1c1c;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    flex-direction: column;
   }
 }
